@@ -67,13 +67,26 @@ Both are reasonable for one owner with a handful of tasks. An exact-match check 
 
 **a. What you tested**
 
-- What behaviors did you test?
-- Why were these tests important?
+I wrote 16 pytest tests:
+- task completion and adding tasks
+- sorting by time and by priority
+- filtering by pet and by done/not done
+- the time budget skipping the lowest-priority task
+- daily, weekly and one-time recurrence, including that tomorrow's copy doesn't appear in today's plan
+- conflict detection (flagged when times match, not flagged when they differ or the task is already done)
+- edge cases: a pet with no tasks, and completing a task that doesn't exist
+
+These matter because the scheduler's whole job is to decide *what* happens and *when*. A sorting or recurrence bug would quietly give the owner a wrong plan, for example a daily walk that never comes back, or meds dropped in favor of brushing.
 
 **b. Confidence**
 
-- How confident are you that your scheduler works correctly?
-- What edge cases would you test next if you had more time?
+About 4 out of 5. All the core behaviors pass, including the edge cases. With more time I would test:
+- overlapping durations, such as a 07:30 walk lasting 30 minutes and an 07:45 pill
+- times that aren't zero-padded (like "7:30"), which would break string sorting
+- two pets with the same name
+- invalid priority or frequency values
+- a zero-minute budget
+- automated tests for the Streamlit UI using `streamlit.testing.AppTest`
 
 ---
 

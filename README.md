@@ -69,18 +69,39 @@ Scheduled 4 task(s) using 75 of 75 available minutes, highest priority first.
 ## 🧪 Testing PawPal+
 
 ```bash
-# Run the full test suite:
-pytest
-
-# Run with coverage:
-pytest --cov
+python -m pytest
 ```
+
+The suite in [tests/test_pawpal.py](tests/test_pawpal.py) has 16 tests covering:
+
+- **Basics:** `mark_complete()` flips the status, and `add_task()` increases a pet's task count.
+- **Sorting:** tasks entered out of order come back in time order, and priority sort puts high first and breaks ties by time.
+- **Filtering:** by pet name, by done/not done, and the time budget dropping the lowest-priority task into `skipped`.
+- **Recurrence:** a daily task creates a copy due the next day, a weekly task creates one due 7 days later, and a `once` task creates nothing. Tomorrow's copy shows up in tomorrow's plan, not today's.
+- **Conflicts:** two tasks at the same time (on different pets) are flagged, tasks at different times aren't, and completed tasks are ignored.
+- **Edge cases:** a pet with no tasks gives an empty plan with a friendly message, and completing a task that doesn't exist raises `ValueError`.
 
 Sample test output:
 
 ```
-# Paste your pytest output here
+============================= test session starts =============================
+platform win32 -- Python 3.13.3, pytest-9.2.0, pluggy-1.7.0
+rootdir: C:\Users\Seano\Documents\ai110-module2show-pawpal-starter
+plugins: anyio-4.13.0
+collected 16 items
+
+tests\test_pawpal.py ................                                    [100%]
+
+============================== warnings summary ===============================
+..\..\AppData\Local\Programs\Python\Python313\Lib\site-packages\anyio\pytest_plugin.py:14
+  PytestRemovedIn10Warning: _pytest.python.CallSpec2 has been renamed to CallSpec.
+
+======================== 16 passed, 1 warning in 0.04s ========================
 ```
+
+(The single warning comes from the third-party `anyio` pytest plugin, not from PawPal+ code.)
+
+**Confidence level: ★★★★☆ (4/5).** Every core scheduling behavior is tested, including the edge cases. I held back one star because conflict detection only catches exact start-time matches (overlapping durations aren't checked), and the Streamlit UI is tested by hand rather than by automated tests.
 
 ## 📐 Smarter Scheduling
 
