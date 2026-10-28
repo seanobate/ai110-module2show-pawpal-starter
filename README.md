@@ -84,14 +84,15 @@ Sample test output:
 
 ## 📐 Smarter Scheduling
 
-> Fill in once you've implemented scheduling logic.
+All scheduling logic lives in [pawpal_system.py](pawpal_system.py).
 
 | Feature | Method(s) | Notes |
 |---------|-----------|-------|
-| Task sorting | | e.g., by priority, duration |
-| Filtering | | e.g., skip tasks if time runs out |
-| Conflict handling | | e.g., overlapping time slots |
-| Recurring tasks | | e.g., daily vs. weekly |
+| Task sorting | `Scheduler.sort_by_time()`, `Scheduler.sort_by_priority()` | Time sort uses `sorted()` with a `lambda` key on the zero-padded `"HH:MM"` string, which sorts correctly as text. Priority sort puts high before low and breaks ties by time. |
+| Filtering | `Scheduler.filter_tasks(pet_name, completed, on_date)`, `Scheduler.filter_by_time()` | `filter_tasks` combines any of the filters (by pet, by done/not done, by date). `filter_by_time` picks tasks in priority order while they still fit in the owner's available minutes; whatever doesn't fit goes into `Scheduler.skipped`. |
+| Conflict handling | `Scheduler.detect_conflicts()` | Groups pending tasks by `(due_date, time)` and returns a warning string for each slot that holds more than one task, whether for the same pet or different pets. It warns and never raises an error. |
+| Recurring tasks | `Task.mark_complete()`, `Pet.complete_task()`, `Scheduler.mark_task_complete()` | When a `daily` or `weekly` task is completed, a copy is created with `due_date + timedelta(days=1 or 7)` and added back to the pet. `once` tasks just end. |
+| Daily plan | `Scheduler.generate_plan()`, `Scheduler.explain_plan()` | Takes the pending tasks due today, applies the time budget, sorts the result by time, and explains why each task was scheduled or skipped. |
 
 ## 📸 Demo Walkthrough
 

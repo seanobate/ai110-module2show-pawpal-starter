@@ -15,6 +15,14 @@ def print_schedule(scheduler: Scheduler) -> None:
     print(scheduler.explain_plan())
 
 
+def print_tasks(heading: str, pairs) -> None:
+    """Print a short list of (pet, task) pairs under a heading."""
+    print(f"\n{heading}")
+    for pet, task in pairs:
+        status = "done" if task.completed else "todo"
+        print(f"  {task.time}  {pet.name:<6} {task.title:<16} {task.priority:<6} {task.due_date} [{status}]")
+
+
 def build_demo_owner() -> Owner:
     """Create the sample owner, pets, and tasks (added out of time order on purpose)."""
     owner = Owner(name="Jordan", available_minutes=75)
@@ -35,3 +43,20 @@ if __name__ == "__main__":
     scheduler = Scheduler(build_demo_owner())
     scheduler.generate_plan()
     print_schedule(scheduler)
+
+    all_tasks = scheduler.owner.get_all_tasks()
+    print_tasks("Tasks as entered:", all_tasks)
+    print_tasks("Sorted by time:", scheduler.sort_by_time(all_tasks))
+    print_tasks("Only Luna's tasks:", scheduler.filter_tasks(pet_name="Luna"))
+
+    print("\nConflict check:")
+    conflicts = scheduler.detect_conflicts()
+    for warning in conflicts:
+        print(f"  WARNING: {warning}")
+    if not conflicts:
+        print("  No conflicts.")
+
+    next_walk = scheduler.mark_task_complete("Mochi", "Morning walk")
+    print(f"\nCompleted Mochi's Morning walk; next one queued for {next_walk.due_date}.")
+    print_tasks("Completed tasks:", scheduler.filter_tasks(completed=True))
+    print_tasks("Mochi's pending tasks:", scheduler.filter_tasks(pet_name="Mochi", completed=False))

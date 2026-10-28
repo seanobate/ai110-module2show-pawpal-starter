@@ -32,13 +32,20 @@ I also used `field(default_factory=list)` for the list attributes, so different 
 
 **a. Constraints and priorities**
 
-- What constraints does your scheduler consider (for example: time, priority, preferences)?
-- How did you decide which constraints mattered most?
+The scheduler looks at four things:
+- **Due date:** only pending tasks due today are considered.
+- **Time budget:** the owner's available minutes for the day.
+- **Priority:** high, medium or low.
+- **Time of day:** each task's `HH:MM` time.
+
+Priority mattered most because missing a high-priority task (meds, feeding) does real harm, while skipping brushing for a day doesn't. So when the budget is tight, tasks are picked in priority order and lower-priority ones are dropped first. Once the tasks are chosen, they're ordered by time so the plan reads like a real day.
 
 **b. Tradeoffs**
 
-- Describe one tradeoff your scheduler makes.
-- Why is that tradeoff reasonable for this scenario?
+- Conflict detection only flags tasks with the **exact same start time** (same date and the same `HH:MM`). It doesn't check whether durations overlap, so a 30-minute walk at 07:30 and a pill at 07:45 won't be flagged.
+- The time-budget filter is **greedy**. It goes through tasks by priority and keeps each one that still fits, so it won't always find the combination that packs the most minutes into the day.
+
+Both are reasonable for one owner with a handful of tasks. An exact-match check is easy to read and test, and it catches the most common mistake: putting two things at the same time. The greedy filter makes sure the important tasks always get in first, which matters more to a pet owner than squeezing in an extra low-priority task. If tasks got longer or more numerous, the next step would be to check for overlapping time windows using each task's start time plus its `duration_minutes`.
 
 ---
 
