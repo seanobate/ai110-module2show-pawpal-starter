@@ -42,9 +42,20 @@ pip install -r requirements.txt
 6. Connect your logic to the Streamlit UI in `app.py`.
 7. Refine UML so it matches what you actually built.
 
-## 🖥️ Sample Output
+## ✨ Features
 
-Paste a sample of your app's CLI or Streamlit output here so a reader can see what a generated plan looks like:
+- **Owners, pets and tasks:** one owner can have several pets, and each pet has its own care tasks (title, duration, priority, time, frequency).
+- **Priority-aware daily plan:** `Scheduler.generate_plan()` picks today's pending tasks in priority order until the owner's available minutes run out, then shows them in time order.
+- **Sorting by time:** `Scheduler.sort_by_time()` orders tasks by their `HH:MM` time, and `sort_by_priority()` orders them high → low.
+- **Filtering:** `Scheduler.filter_tasks()` narrows the list by pet, by done/not done, and/or by date.
+- **Conflict warnings:** `Scheduler.detect_conflicts()` flags two or more tasks set for the same date and time, across all pets, as a friendly warning rather than an error.
+- **Daily and weekly recurrence:** completing a recurring task adds the next one automatically, 1 day or 7 days later (`Task.mark_complete()` using `timedelta`).
+- **Plan explanations:** `Scheduler.explain_plan()` says why each task made it into the plan, and which tasks were skipped for lack of time.
+- **Streamlit UI:** the `Owner` lives in `st.session_state`, so pets and tasks stay put as you click around.
+
+Class design: [diagrams/uml_final.mmd](diagrams/uml_final.mmd) (the Phase 1 draft is [diagrams/uml.mmd](diagrams/uml.mmd)).
+
+## 🖥️ Sample Output
 
 Output of `python main.py`:
 
@@ -117,12 +128,69 @@ All scheduling logic lives in [pawpal_system.py](pawpal_system.py).
 
 ## 📸 Demo Walkthrough
 
-Describe your app in numbered steps so a reader can follow along without watching a video:
+Run the app with `streamlit run app.py`.
 
-1. <!-- Describe this step -->
-2. <!-- Describe this step -->
-3. <!-- Describe this step -->
-4. <!-- Describe this step -->
-5. <!-- Add more steps as needed -->
+1. **Set up the owner.** In the *Owner* form, enter your name and how many minutes you have for pet care today (for example 90), then click **Save owner**.
+2. **Add pets.** In the *Pets* form, add "Mochi" (dog) and then "Luna" (cat). A table lists each pet and how many tasks it has.
+3. **Schedule tasks.** In the *Tasks* form, pick a pet and enter a title, time, duration, priority and frequency. For example: Mochi, "Morning walk", 07:30, 30 min, high, daily. Then Luna, "Feeding", 08:00, 10 min, high, daily. Then Mochi, "Heartworm pill", 08:00, 5 min, high, once.
+4. **Browse tasks.** The task table is always sorted by date and time. Use **Show pet** and **Show status** to filter, for example to see only Luna's tasks or only the completed ones.
+5. **Generate today's schedule.** Click **Generate schedule**. You'll see:
+   - a green summary (how many tasks, and how many minutes used out of the budget)
+   - a yellow **conflict warning**, because Mochi's pill and Luna's feeding are both at 08:00, with a suggestion to move one
+   - the plan as a table in time order
+   - a blue note listing any tasks skipped because time ran out (lowest priority goes first)
+   - a **Why this plan?** expander with the scheduler's explanation
+6. **Complete a recurring task.** In **Mark a task complete**, choose Mochi's Morning walk and click **Mark complete**. The app confirms that the next walk has been added for tomorrow. Switch **Show status** to *All* to see both the finished walk and tomorrow's.
 
-**Screenshot or video** *(optional)*: <!-- Insert a screenshot or link to a demo video here -->
+The same behaviors run in the terminal with `python main.py`: tasks are added out of order, then the demo prints the plan, sorted and filtered lists, a conflict warning and a recurrence:
+
+```
+Today's Schedule for Jordan
+====================================================
+Time   Pet    Task                Min  Priority
+----------------------------------------------------
+07:30  Mochi  Morning walk         30  high
+08:00  Mochi  Heartworm pill        5  high
+08:00  Luna   Feeding              10  high
+18:00  Mochi  Evening walk         30  medium
+----------------------------------------------------
+Scheduled 4 task(s) using 75 of 75 available minutes, highest priority first.
+- 07:30 Morning walk (Mochi): high priority, 30 min fit in the budget.
+- 08:00 Heartworm pill (Mochi): high priority, 5 min fit in the budget.
+- 08:00 Feeding (Luna): high priority, 10 min fit in the budget.
+- 18:00 Evening walk (Mochi): medium priority, 30 min fit in the budget.
+- Skipped Brushing (Luna): low priority, 15 min did not fit in the remaining time.
+
+Tasks as entered:
+  18:00  Mochi  Evening walk     medium 2026-10-28 [todo]
+  07:30  Mochi  Morning walk     high   2026-10-28 [todo]
+  08:00  Mochi  Heartworm pill   high   2026-10-28 [todo]
+  08:00  Luna   Feeding          high   2026-10-28 [todo]
+  19:00  Luna   Brushing         low    2026-10-28 [todo]
+
+Sorted by time:
+  07:30  Mochi  Morning walk     high   2026-10-28 [todo]
+  08:00  Mochi  Heartworm pill   high   2026-10-28 [todo]
+  08:00  Luna   Feeding          high   2026-10-28 [todo]
+  18:00  Mochi  Evening walk     medium 2026-10-28 [todo]
+  19:00  Luna   Brushing         low    2026-10-28 [todo]
+
+Only Luna's tasks:
+  08:00  Luna   Feeding          high   2026-10-28 [todo]
+  19:00  Luna   Brushing         low    2026-10-28 [todo]
+
+Conflict check:
+  WARNING: Conflict on 2026-10-28 at 08:00: Heartworm pill (Mochi), Feeding (Luna)
+
+Completed Mochi's Morning walk; next one queued for 2026-10-29.
+
+Completed tasks:
+  07:30  Mochi  Morning walk     high   2026-10-28 [done]
+
+Mochi's pending tasks:
+  18:00  Mochi  Evening walk     medium 2026-10-28 [todo]
+  08:00  Mochi  Heartworm pill   high   2026-10-28 [todo]
+  07:30  Mochi  Morning walk     high   2026-10-29 [todo]
+```
+
+**Screenshot or video** *(optional)*: not included. The walkthrough and CLI output above show every feature.

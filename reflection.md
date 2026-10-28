@@ -26,6 +26,12 @@ I asked the AI to review the skeleton, and it suggested two small changes, which
 
 I also used `field(default_factory=list)` for the list attributes, so different Pets and Owners don't share the same list.
 
+During implementation the design changed again (the final version is `diagrams/uml_final.mmd`):
+
+- **Each task carries its own `time` and `due_date`.** The draft had the Scheduler working out start times from an `Owner.day_start`. That made sorting by time and conflict detection awkward, because a task had no time until a plan existed. Moving `time` onto `Task` (and dropping `day_start`) made plan entries simple `(Pet, Task)` pairs, and let sorting, filtering and conflict checks work on any list of tasks.
+- **Recurrence lives on `Task`.** `mark_complete()` now returns the next occurrence, and `Pet.complete_task()` adds it to the pet. That kept the date math in one place, and `Scheduler.mark_task_complete()` is just a convenience wrapper around it.
+- **New Scheduler methods** for Phase 4: `sort_by_priority`, `filter_tasks`, `detect_conflicts` and `mark_task_complete`.
+
 ---
 
 ## 2. Scheduling Logic and Tradeoffs
@@ -51,15 +57,30 @@ Both are reasonable for one owner with a handful of tasks. An exact-match check 
 
 ## 3. AI Collaboration
 
+> _Draft written with Claude Code from what happened in this session. Edit it so it matches your own experience._
+
 **a. How you used AI**
 
-- How did you use AI tools during this project (for example: design brainstorming, debugging, refactoring)?
-- What kinds of prompts or questions were most helpful?
+I used Claude Code inside VS Code for the whole project:
+- brainstorming the four classes and drawing the Mermaid UML
+- generating the dataclass skeleton
+- implementing the logic
+- writing `main.py` and the tests
+- wiring up the Streamlit UI
+
+The most effective feature was **plan mode**. Before touching any files, the assistant read the repo and wrote a plan that I could review and approve (the class design, the exact commit messages, how it would check its work). Agent-style editing across several files was also useful for the recurrence change, which touched `Task`, `Pet`, `Scheduler`, `main.py` and the UI together.
+
+The most helpful prompts were specific and grounded in my own files. For example: "based on my skeletons, how should the Scheduler get all tasks from the Owner's pets?", or "why is this test failing, and is the bug in the test or in `pawpal_system.py`?" Generic prompts gave generic answers.
+
+Keeping each phase separate (design, then core logic, then UI, then algorithms, then tests, then docs), each with its own commit, kept every conversation focused on one goal. It also made it easy to see what changed at each step in `git log`.
 
 **b. Judgment and verification**
 
-- Describe one moment where you did not accept an AI suggestion as-is.
-- How did you evaluate or verify what the AI suggested?
+- **Start times.** The first design had the Scheduler compute start times from `Owner.day_start`. When it came to sorting by time and detecting conflicts, I moved `time` onto `Task` instead. It's less "clever", but much easier to read and test.
+- **The UI order bug.** The first UI version put the "Mark complete" form *below* the task table, so the table didn't update after you clicked. I caught that while reviewing and moved the form above the table.
+- **Conflict detection.** I kept it to exact time matches rather than overlapping-duration checks, because the simpler version is easier to explain and was enough for this scenario.
+
+I checked every AI change three ways: running `python main.py` to see real output, running `python -m pytest` after each phase, and running a headless Streamlit test that adds pets and tasks, generates a schedule and marks a task complete.
 
 ---
 
@@ -94,12 +115,16 @@ About 4 out of 5. All the core behaviors pass, including the edge cases. With mo
 
 **a. What went well**
 
-- What part of this project are you most satisfied with?
+I'm most satisfied with how small and testable the Scheduler ended up. Every method takes a list of `(Pet, Task)` pairs and returns a new list. Because of that, sorting, filtering and conflict detection each take only a few lines, and the 16 tests were easy to write. The CLI-first approach also meant that by the time I wired up the UI, the logic was already proven.
 
 **b. What you would improve**
 
-- If you had another iteration, what would you improve or redesign?
+- Detect conflicts from overlapping time windows (start time plus duration) instead of only exact time matches.
+- Use a better selection method than greedy, so the plan packs the time budget more fully.
+- Validate input: priority and frequency values, and zero-padded times.
+- Save owners, pets and tasks to a file so they survive a browser refresh.
+- Use the `preferences` dictionary, which is stored but not used yet.
 
 **c. Key takeaway**
 
-- What is one important thing you learned about designing systems or working with AI on this project?
+Being the "lead architect" means the AI can write code faster than I can, but I'm the one who decides what the system *should* be. The UML and the plan-approval step were where I had the most control: catching a design problem there cost one sentence, while catching it after the code was written meant rewriting several files. Asking for small, reviewable steps and checking each one with real output and tests is what kept the AI's speed from turning into a mess.

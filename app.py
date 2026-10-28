@@ -68,15 +68,47 @@ if owner.pets:
             )
             st.success(f"Added {task_title} for {task_pet}.")
 
-    tasks = owner.get_all_tasks()
-    if tasks:
-        st.table(
-            [
-                {"Pet": pet.name, "Time": t.time, "Task": t.title, "Minutes": t.duration_minutes,
-                 "Priority": t.priority, "Frequency": t.frequency, "Done": t.completed}
-                for pet, t in tasks
-            ]
+    scheduler = Scheduler(owner)
+    if owner.get_all_tasks():
+        # Handle completion before drawing the table so the table shows the result.
+        pending = scheduler.filter_tasks(completed=False)
+        if pending:
+            with st.form("complete_form"):
+                choice = st.selectbox(
+                    "Mark a task complete",
+                    range(len(pending)),
+                    format_func=lambda i: f"{pending[i][1].due_date} {pending[i][1].time} · "
+                    f"{pending[i][1].title} ({pending[i][0].name})",
+                )
+                if st.form_submit_button("Mark complete"):
+                    pet, task = pending[choice]
+                    next_task = pet.complete_task(task.title)
+                    if next_task:
+                        st.success(f"Done! Next {task.title} for {pet.name} is on {next_task.due_date}.")
+                    else:
+                        st.success(f"Done! {task.title} for {pet.name} is complete.")
+
+        col1, col2 = st.columns(2)
+        with col1:
+            pet_filter = st.selectbox("Show pet", ["All pets"] + [p.name for p in owner.pets])
+        with col2:
+            status_filter = st.selectbox("Show status", ["Pending", "Completed", "All"])
+        filtered = scheduler.filter_tasks(
+            pet_name=None if pet_filter == "All pets" else pet_filter,
+            completed={"Pending": False, "Completed": True, "All": None}[status_filter],
         )
+        if filtered:
+            st.table(
+                [
+                    {"Date": str(t.due_date), "Time": t.time, "Pet": pet.name, "Task": t.title,
+                     "Minutes": t.duration_minutes, "Priority": t.priority,
+                     "Frequency": t.frequency, "Done": "✅" if t.completed else ""}
+                    # sorted() is stable, so date order keeps the time order within each day
+                    for pet, t in sorted(scheduler.sort_by_time(filtered), key=lambda p: p[1].due_date)
+                ]
+            )
+        else:
+            st.info("No tasks match these filters.")
     else:
         st.info("No tasks yet. Add one above.")
 else:
@@ -84,13 +116,32 @@ else:
 
 st.divider()
 
-st.subheader("Build Schedule")
-if st.button("Generate schedule"):
+st.subheader("Today's Schedule")
+if st.button("Generate schedule", type="primary"):
     scheduler = Scheduler(owner)
     plan = scheduler.generate_plan()
-    if plan:
-        st.table(
-            [{"Time": t.time, "Pet": pet.name, "Task": t.title, "Minutes": t.duration_minutes,
-              "Priority": t.priority} for pet, t in plan]
+    conflicts = scheduler.detect_conflicts(plan)
+    if not plan and not scheduler.skipped:
+        st.info("Nothing is due today. Add tasks or check back tomorrow.")
+    else:
+        used = sum(t.duration_minutes for _, t in plan)
+        st.success(
+            f"Planned {len(plan)} task(s) using {used} of {owner.available_minutes} minutes."
         )
-    st.text(scheduler.explain_plan())
+        for warning in conflicts:
+            st.warning(
+                f"⚠️ {warning}. You can't do both at once, so consider moving one of them "
+                "to a different time."
+            )
+        if plan:
+            st.table(
+                [{"Time": t.time, "Pet": pet.name, "Task": t.title, "Minutes": t.duration_minutes,
+                  "Priority": t.priority} for pet, t in plan]
+            )
+        if scheduler.skipped:
+            st.info(
+                "Skipped (not enough time): "
+                + ", ".join(f"{t.title} ({pet.name}, {t.priority})" for pet, t in scheduler.skipped)
+            )
+        with st.expander("Why this plan?"):
+            st.text(scheduler.explain_plan())
