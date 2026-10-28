@@ -57,30 +57,40 @@ Both are reasonable for one owner with a handful of tasks. An exact-match check 
 
 ## 3. AI Collaboration
 
-> _Draft written with Claude Code from what happened in this session. Edit it so it matches your own experience._
-
 **a. How you used AI**
 
-I used Claude Code inside VS Code for the whole project:
-- brainstorming the four classes and drawing the Mermaid UML
-- generating the dataclass skeleton
-- implementing the logic
-- writing `main.py` and the tests
-- wiring up the Streamlit UI
+I used Claude Code in VS Code as an agent for the whole project. I gave it the instructions for each phase, and it handled:
+- the UML diagram
+- the class skeleton
+- the scheduling logic
+- the `main.py` demo
+- the tests
+- the Streamlit UI
+- the documentation
 
-The most effective feature was **plan mode**. Before touching any files, the assistant read the repo and wrote a plan that I could review and approve (the class design, the exact commit messages, how it would check its work). Agent-style editing across several files was also useful for the recurrence change, which touched `Task`, `Pet`, `Scheduler`, `main.py` and the UI together.
+My job was to steer it and check the results.
 
-The most helpful prompts were specific and grounded in my own files. For example: "based on my skeletons, how should the Scheduler get all tasks from the Owner's pets?", or "why is this test failing, and is the bug in the test or in `pawpal_system.py`?" Generic prompts gave generic answers.
+The feature that helped most was **plan mode**. Before changing any files, Claude read the repo and wrote out a plan for me to approve: the class design, which files it would change, the commit message for each phase, and how it would test its work. It also asked me about decisions that were mine to make, like which name to put on my Git commits and whether to push after every phase. Approving a plan before any code got written made it much easier to follow what was happening.
 
-Keeping each phase separate (design, then core logic, then UI, then algorithms, then tests, then docs), each with its own commit, kept every conversation focused on one goal. It also made it easy to see what changed at each step in `git log`.
+The most useful prompts were the actual phase instructions, pasted in with their concrete requirements (e.g., "sort tasks by time," "a daily task should come back the next day," "conflicts should give a warning, not crash"). Clear requirements gave clear results.
+
+I didn't use separate chat sessions. Everything happened in one long conversation. What kept it organized instead was doing **one phase at a time with its own commit**:
+- `chore: add class skeletons from UML`
+- `feat: implement PawPal+ core classes…`
+- `feat: connect Streamlit UI…`
+- `feat: implement sorting, filtering, and conflict detection`
+- `test: add automated test suite…`
+- `docs: finalize UML, README, and reflection`
+
+Each phase had a clear goal, and `git log` shows how the project grew step by step. Next time, I'd try a fresh session for testing, so the AI looks at the code with "fresh eyes" instead of testing code it remembers writing.
 
 **b. Judgment and verification**
 
-- **Start times.** The first design had the Scheduler compute start times from `Owner.day_start`. When it came to sorting by time and detecting conflicts, I moved `time` onto `Task` instead. It's less "clever", but much easier to read and test.
-- **The UI order bug.** The first UI version put the "Mark complete" form *below* the task table, so the table didn't update after you clicked. I caught that while reviewing and moved the form above the table.
-- **Conflict detection.** I kept it to exact time matches rather than overlapping-duration checks, because the simpler version is easier to explain and was enough for this scenario.
+- **Simplifying the design.** The first UML had the Scheduler working out start times from an `Owner.day_start` value. In Phase 2 the design changed so each `Task` stores its own `time` and `due_date`. That's less clever, but it made sorting, filtering and conflict checks simple and easy to test, so I kept the simpler version.
+- **Keeping conflict detection simple.** Conflicts are only flagged when two tasks have the exact same start time; overlapping durations aren't checked. I accepted this because it's easy to understand and catches the most common mistake. It's noted as a known limitation.
+- **A UI bug caught in review.** In the first version of the polished UI, the "Mark complete" form was *below* the task table, so the table didn't update after a click. This was caught during review and fixed by moving the form above the table.
 
-I checked every AI change three ways: running `python main.py` to see real output, running `python -m pytest` after each phase, and running a headless Streamlit test that adds pets and tasks, generates a schedule and marks a task complete.
+To check the work, I didn't just trust that the code was right. After each phase, `python main.py` was run to see real output, `python -m pytest` was run (16 tests, all passing), and the Streamlit app was tested by adding pets and tasks, generating a schedule and marking a task complete. I also recorded myself using the app (`assets/pawpal_demo.mp4`) to confirm it works in the browser.
 
 ---
 

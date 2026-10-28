@@ -193,4 +193,4 @@ Mochi's pending tasks:
   07:30  Mochi  Morning walk     high   2026-10-29 [todo]
 ```
 
-**Screenshot or video** *(optional)*: not included. The walkthrough and CLI output above show every feature.
+**Video:** [assets/pawpal_demo.mp4](assets/pawpal_demo.mp4) is a screen recording of the Streamlit interface: adding pets and tasks, generating the schedule, and the conflict warning. On GitHub, click the link to play it.
